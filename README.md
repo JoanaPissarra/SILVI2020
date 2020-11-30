@@ -141,7 +141,7 @@ For  class II, the last steps of the script output the following file:
 
 ### Getting started instructions
 
-![getting started](images/read_me_getting_started.jpeg)
+![getting started](images/read_me_getting_started.jpg)
 
 
 
