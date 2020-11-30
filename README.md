@@ -139,7 +139,10 @@ For  class II, the last steps of the script output the following file:
 * res_classII.csv
 
 
-### Getting started instructions
+
+
+
+# Getting started instructions
 
 ![getting started](images/read_me_getting_started.jpg)
 
