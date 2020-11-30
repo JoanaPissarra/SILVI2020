@@ -1,18 +1,14 @@
 # Description ---------------------------------------------
 
 #
-# script name:  Epitope
+# script name:  SILVI
 # author:       Vincent Bonhomme
 # started:      July 2016
-# licence:      (c) Vincent Bonhomme/Athéna & Joanna Pissara/IRD#
-# dependencies: plyr, dplyr, magrittr
-#
-# abstract:     This script select epitopes [todo]
-#
+# licence:      (c) Vincent Bonhomme/Athéna & Joana Pissarra/IRD#
+# dependencies: tidyverse, stringr, Peptides
 #
 # note:         This script depends on file format specifications.
-#  The raw data it uses are protein_predictor.proteins
-#               [todo] describe .csv here
+#  		The raw data it uses are protein_predictor.proteins
 
 
 # Preliminaries -------------------------------------------
@@ -20,20 +16,12 @@
 # rinse environmment
 rm(list=ls())
 
-### # dependencies
-### library(plyr)
-### library(dplyr)
-### library(magrittr)
 
 ### # dependencies
 library(dplyr)
 library(magrittr)
 source("code/process_blast.R")
-#source("process_blast.R")
 
-# https://gist.github.com/hadley/6353939#file-read-file-cpp
-# library(Rcpp)
-# sourceCpp("code/read-file.cpp")
 
 # Final pipes ---------------------------------------------
 cook_I <- function(PATH_TO_CSV_FOLDER){
@@ -106,10 +94,6 @@ digest_II <- function(cooked, PATH_TO_BLAST_TXT){
 #   works whatever .csv use  "," or ";" as field separators
 #   it would have been read.table(path, h=T, sep=",") if all files used ",".
 import_1_protein_predictor_class1 <- function(path){
-  # Rcpp solution
-  # df <- read_file_cpp2(path) %>% gsub(";", ",", .) %>% textConnection()  %>% read.table(sep=",", header=T)
-  # noRcpp solution
-  # df <- readLines(path) %>% gsub(";", ",", .) %>% textConnection()  %>% read.table(sep=",", header=T)
   # now with homogeneous files
   # add a specific field separator (comma)
       	df <- read.csv2(path,sep=";")
@@ -168,13 +152,6 @@ import_1_protein_predictor_class2 <- function(path){
   netmhc_id <- df  %>% colnames  %>% grep("^C|core$", .)
   netmhc_flag <- netmhc_id %>% any()
 
-  # if (netmhc_flag){
-  #   df  %<>% rename(full_peptide=Peptide, peptide=Core, seq_num=Identity, allele=Allele) %>%
-  #     mutate(start=NA, end=NA, percentile_rank=NA, score=NA)
-  # } else {
-  #   df  %<>% rename(full_peptide=peptide) %>% rename_(peptide=colnames(df)[netmhc_id])
-  #     mutate(start=NA, end=NA, percentile_rank=NA, Pos=NA, Affinity.nM.=NA, X.Rank=NA, BindingLevel=NA, score=NA)
-  # }
   df %<>% rename(peptide=core, score=ic50) %>% mutate
   # retrieve and add protein name from path (precarious)
   protein <- strsplit(path, "/|\\.|_")  %>% sapply(function(.) .[length(.)-2])
@@ -261,22 +238,6 @@ map_supertypes_alleles <- function(df,
   }
   df
 }
-
-# filter ====================
-
-# old version
-# # filter peptides present, at least "at_least" times per allele. 2 by default
-# only_peptides_repeated_seqnum_times <- function(df){
-#   df %>%
-#     # peptides repeated (number of seq_num) times, within an allele,
-#     group_by(protein, allele, predictor, peptide)  %>% filter(n()==length(unique(seq_num))) %>%
-#     # retain a single row per peptide, then ungroup
-#     slice(1)  %>% ungroup %>%
-#     # we no longer need seq_num
-#     select(- seq_num) %>%
-#     # cosmetics
-#     arrange(protein, allele, peptide)
-# }
 
 # seqnum filtering ---------
 only_all_seqnum <- function(df){
@@ -455,20 +416,6 @@ add_best_from_blastOLD <- function(df, blasted.path){
          middle_line =  query[best_score_line+4])
   }
 
-  # last_minute patch: we need the infor from the query line to reconstruct
-  # the peptide in the 'subject' line. the function 'best_alignment' now returns a list with these two strings
-  # regrow_query <- function(query, n_expected = 9){
-  #   query_info <- query %>% strsplit(" +") %>% do.call(rbind, .) %>% `[`(, 2:3)
-  #   left <- paste0(rep("-", as.numeric(query_info[1])-1), collapse ="")
-  #   middle <- query_info[2] %>% gsub("-", "", .)
-  #   n_missing_right <- n_expected - nchar(left) - nchar(middle)
-  #   if (n_missing_right>0)
-  #     right <- paste0(rep("-", n_missing_right), collapse ="")
-  #   else
-  #     right <- ""
-  #   final <- paste0(left, middle, right)
-  #   return(final)
-  # }
 
   regrow_query2 <- function(query, n_expected = 9){
     query_info <- query$query_line %>% strsplit(" +") %>% unlist %>% `[`(2:3)
@@ -532,33 +479,6 @@ best_sliding <- function(fixed, sliding){
 }
 
 # mismatches ==================
-# to be tested/documented
-#
-# do_these_pos_mismatch <- function(pos, pep, bla){
-#   tab <- cbind(pep %>% as.character %>% strsplit("") %>% unlist(),
-#                bla %>% as.character %>% strsplit("") %>% unlist())
-#   tab[pos,, drop=FALSE] %>% apply(1, function(x) x[1] != x[2]) #(x[2]!= "-") & (x[1] != x[2]))
-# }
-#
-# mismatches_class_I <- function(df, path="data/mismatch_class_I.csv"){
-#   mm <- read.table(path, h=T, sep=";", stringsAsFactors = F)
-#   res <- left_join(df, mm, "supertype")
-#   res %<>% mutate(mismatch_pos1=NA, mismatch_pos2=NA)
-#   for (i in 1:nrow(res)){
-#     x <- do_these_pos_mismatch(
-#       pos=c(res[i, "pos1"], res[i, "pos2"]) %>% unlist,
-#       pep=res[i, "peptide"],
-#       bla=res[i, "blast"])
-#     res$mismatch_pos1[i] <- x[1]
-#     res$mismatch_pos2[i] <- x[2]
-#   }
-#   res
-# }
-
-#' Compute FALSE/TRUE score columns (from peptide and middle2 columns)
-#'
-#' @param df A tibble
-#' @return A new dataframe : copy of input tibble plus m_1:m_n columns (FALSE/TRUE val)
 
 count_mismatches <- function(df){
   l1 <- df$peptide %>% strsplit("")
@@ -617,12 +537,12 @@ final_polish <- function(df){
     # reorder columns and rename blast on the fly
     df %>%
       # select(peptide, middle, middle2, subject=blast, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
-        select(peptide, middle, middle2, fd_middle, fd_middle2, subject=blast, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
+        select(peptide, fd_middle, fd_middle2, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
       as_data_frame() %>% return()
   } else {
     df %>%
       # select(allele,full_peptide, middle, middle2, subject=blast, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
-      select(allele,full_peptide, middle, middle2, fd_middle, fd_middle2, subject=blast, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
+      select(allele,full_peptide, fd_middle, fd_middle2, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
       as_data_frame() %>% return()
   }
 }
@@ -672,28 +592,7 @@ merge_result_classI <-function()
 
   #
   # # Score of N predictor (if any)
-  # # home made function to extract scores from strings
-  # get_scores = function(st){
-  #   sst = strsplit(st,"\\_")[[1]]
-  #   return(sst[2]) }
-  #
-  # get_pred_scores = function(st,pred){
-  #   sst = strsplit(st,"\\+")[[1]]
-  #   test = sst[grep(pred,sst)]
-  #   test2 = sapply(test,get_scores)
-  #   return(as.numeric(as.vector(test2))) }
-  #
-  #
-  # setapred = setapred %>% rowwise %>% mutate(scoreN = min(get_pred_scores(as.character(score),"N")))
-  #
-  #
-  #
-  # setapred$scoreN = ifelse(setapred$scoreN == -Inf,NA,setapred$scoreN)
-  #
-
-  # Now for the filtering step:
-  #setapred %>% arrange(desc(Num_predictor),desc(mismatch),desc(scoreN)) %>% glimpse
-
+  
   # convert supertype to vector of characters
   setapred$supertype = as.vector(setapred$supertype)
 
