@@ -537,12 +537,12 @@ final_polish <- function(df){
     # reorder columns and rename blast on the fly
     df %>%
       # select(peptide, middle, middle2, subject=blast, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
-        select(peptide, fd_middle, fd_middle2, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
+        select(peptide, middle, middle2, fd_middle, fd_middle2, subject=blast, starts_with("m_"), protein, supertype, predictor, seq_num, score, blast_info, file) %>%
       as_data_frame() %>% return()
   } else {
     df %>%
       # select(allele,full_peptide, middle, middle2, subject=blast, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
-      select(allele,full_peptide, fd_middle, fd_middle2, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
+      select(allele, full_peptide, middle, middle2, fd_middle, fd_middle2, subject=blast, starts_with("m_"), peptide, protein, predictor, seq_num, score, blast_info, file) %>%
       as_data_frame() %>% return()
   }
 }
